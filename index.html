@@ -4,98 +4,144 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="動画と音声をブラウザ内だけで結合してMP4にするツール" />
-    <title>Audio + Video Merger</title>
+    <title>音声と映像を結合 | AV Merger</title>
+    <script>
+      (() => {
+        let theme = 'system';
+        try { theme = localStorage.getItem('av-merger-theme') || 'system'; } catch {}
+        document.documentElement.dataset.theme = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      })();
+    </script>
   </head>
   <body>
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m9 5 11 7-11 7z" /></svg></span>
+        <span>AV Merger</span>
+      </div>
+      <label class="theme-control">
+        <span class="theme-label">外観</span>
+        <select id="themeSelect" aria-label="表示テーマ">
+          <option value="system">端末の設定に合わせる</option>
+          <option value="light">ライトモード</option>
+          <option value="dark">ダークモード</option>
+        </select>
+      </label>
+    </header>
     <main class="shell">
-      <section class="hero">
-        <div class="eyebrow">LOCAL / PRIVATE / NO UPLOAD</div>
-        <h1>音声と映像を<br />ブラウザで結合</h1>
-        <p class="lead">ファイルはサーバーへ送信されません。端末上のFFmpeg WebAssemblyで処理します。</p>
-      </section>
-
-      <section class="panel">
-        <div class="drop-grid">
-          <label class="drop-zone" id="videoDrop">
-            <input id="videoInput" type="file" accept="video/*" hidden />
-            <span class="drop-icon">▶</span>
-            <span class="drop-title">映像を選択</span>
-            <span class="drop-sub">クリック または ドラッグ＆ドロップ</span>
-            <span class="file-name" id="videoName">未選択</span>
-          </label>
-
-          <label class="drop-zone" id="audioDrop">
-            <input id="audioInput" type="file" accept="audio/*" hidden />
-            <span class="drop-icon">♪</span>
-            <span class="drop-title">音声を選択</span>
-            <span class="drop-sub">クリック または ドラッグ＆ドロップ</span>
-            <span class="file-name" id="audioName">未選択</span>
-          </label>
-        </div>
-
-        <div class="preview-grid">
-          <div class="preview-card">
-            <div class="preview-label">VIDEO PREVIEW</div>
-            <video id="videoPreview" controls playsinline></video>
-          </div>
-          <div class="preview-card audio-card">
-            <div class="preview-label">AUDIO PREVIEW</div>
-            <div class="wave-placeholder" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      <div class="workspace">
+        <section class="viewer" aria-labelledby="pageTitle">
+          <div class="video-stage">
+            <video id="videoPreview" controls playsinline preload="metadata" hidden aria-label="選択した映像のプレビュー"></video>
+            <div class="empty-preview" id="emptyPreview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg>
+              <span id="emptyPreviewText">映像を選択すると、ここで確認できます</span>
             </div>
-            <audio id="audioPreview" controls></audio>
           </div>
-        </div>
-
-        <div class="settings">
-          <label class="setting-row">
-            <span>
-              <strong>音声を動画尺までループ</strong>
-              <small>音声が短い場合、繰り返して動画の最後まで再生します。</small>
-            </span>
-            <input id="loopAudio" type="checkbox" checked />
-          </label>
-
-          <label class="setting-row">
-            <span>
-              <strong>互換性優先（H.264へ変換）</strong>
-              <small>OFFは高速。元映像をそのまま使える場合は再エンコードしません。</small>
-            </span>
-            <input id="transcodeVideo" type="checkbox" />
-          </label>
-        </div>
-
-        <div class="action-row">
-          <button id="mergeButton" class="primary" disabled>映像と音声を結合</button>
-          <button id="resetButton" class="secondary" type="button">リセット</button>
-        </div>
-
-        <div class="status" id="status" aria-live="polite">
-          <div class="status-line">
-            <span id="statusText">映像と音声を選択してください。</span>
-            <span id="progressText">0%</span>
+          <h1 id="pageTitle">音声と映像を結合</h1>
+          <p class="description" id="pageDescription">動画と音声を選んで、ひとつのMP4に。動画の元の音声は、選択した音声に置き換わります。</p>
+          <p class="privacy-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+            ファイルはサーバーに送信されません
+          </p>
+        </section>
+        <section class="editor" aria-label="結合の設定">
+          <div class="editor-section">
+            <label class="mode-control" for="taskMode">操作</label>
+            <select id="taskMode" class="mode-select">
+              <option value="merge">映像と音声を結合</option>
+              <option value="audio">音声のみ切り出す</option>
+              <option value="video">映像のみ切り出す</option>
+            </select>
+            <h2>ファイル</h2>
+            <label class="drop-zone" id="videoDrop">
+              <input class="file-input" id="videoInput" type="file" accept="video/*,.mp4,.webm,.mov,.m4v" aria-label="映像を選択" />
+              <span class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg></span>
+              <span class="drop-copy"><span class="drop-title">映像を選択</span><span class="file-name" id="videoName">未選択</span></span>
+            </label>
+            <label class="drop-zone" id="audioDrop">
+              <input class="file-input" id="audioInput" type="file" accept="audio/*,video/webm,.webm,.m4a" aria-label="音声を選択" />
+              <span class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17V5l11-2v12M9 8l11-2" /><ellipse cx="6" cy="18" rx="3" ry="2.5" /><ellipse cx="17" cy="16" rx="3" ry="2.5" /></svg></span>
+              <span class="drop-copy"><span class="drop-title">音声を選択</span><span class="file-name" id="audioName">未選択</span></span>
+            </label>
+            <p class="drop-hint">クリック、またはファイルをドラッグ＆ドロップ</p>
+            <div class="audio-preview" id="audioPreviewPanel" hidden>
+              <p class="preview-label">選択した音声</p>
+              <audio id="audioPreview" controls preload="metadata" aria-label="選択した音声のプレビュー"></audio>
+            </div>
           </div>
-          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
-        </div>
-      </section>
-
-      <section id="resultPanel" class="panel result-panel" hidden>
+          <div class="editor-section">
+            <h2>出力設定</h2>
+            <div id="cutSettings" hidden>
+              <label class="mode-control" for="segmentSeconds">1本あたりの秒数</label>
+              <div class="segment-control">
+                <input id="segmentSeconds" type="number" min="0.001" step="any" placeholder="長さを確認中" />
+                <button id="autoSegmentButton" class="secondary" type="button">自動設定</button>
+              </div>
+              <p id="segmentPlan" class="drop-hint" aria-live="polite">メモリ使用量とファイルの長さから自動設定します。</p>
+              <div class="time-fields">
+                <label>開始<input id="cutStart" type="text" value="0:00" placeholder="0:00" aria-describedby="timeHint" /></label>
+                <label>終了<input id="cutEnd" type="text" value="5:00" placeholder="5:00" aria-describedby="timeHint" /></label>
+              </div>
+              <p id="timeHint" class="drop-hint">分:秒、時:分:秒、または秒数で指定（例：0:00〜5:00）。</p>
+              <p id="sourceDuration" class="drop-hint"></p>
+              <p class="drop-hint">音声はM4A、映像は音声なしのMP4に変換します。保存した音声と映像の同じ区間を「映像と音声を結合」で選んでください。</p>
+            </div>
+            <div id="mergeSettings">
+            <label class="setting-row">
+              <span><strong>音声を動画尺までループ</strong><small>音声が短い場合、動画の最後まで繰り返します。</small></span>
+              <input id="loopAudio" type="checkbox" checked />
+            </label>
+            <label class="setting-row">
+              <span><strong>互換性を優先</strong><small>映像をH.264に変換します。オフにすると、元の映像を使って高速に処理します。</small></span>
+              <input id="transcodeVideo" type="checkbox" />
+            </label>
+            </div>
+            <div class="memory-info">
+              <p id="memoryEstimate" aria-live="polite"></p>
+              <p id="deviceMemory"></p>
+              <p class="memory-note" id="memoryNote">実測値ではなく、形式や解像度などで増える場合があります。警告がなくても処理の成功を保証するものではありません。</p>
+            </div>
+            <p id="memoryWarning" class="memory-warning" role="alert" hidden></p>
+            <div id="splitGuidance" hidden>
+              <p class="drop-hint">短い区間に分けて、1本ずつ保存してください。短くしても警告が続く場合は、解像度を下げるか、メモリに余裕のある端末をお使いください。</p>
+              <div class="action-row">
+                <button id="splitVideoButton" class="secondary" type="button">映像を分割する</button>
+                <button id="splitAudioButton" class="secondary" type="button">音声を分割する</button>
+                <button id="shortenButton" class="secondary" type="button">推奨秒数で分割する</button>
+              </div>
+              <label class="saved-confirm"><input id="riskConfirm" type="checkbox" />警告を確認し、この設定で処理する</label>
+            </div>
+            <div class="action-row">
+              <button id="mergeButton" class="primary" disabled>映像と音声を結合</button>
+              <button id="resetButton" class="secondary" type="button">リセット</button>
+            </div>
+            <div class="status" id="status" aria-live="polite">
+              <div class="status-line"><span id="statusText">映像と音声を選択してください。</span><span id="progressText">0%</span></div>
+              <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <section id="resultPanel" class="result-panel" hidden aria-labelledby="resultTitle">
         <div class="result-head">
-          <div>
-            <div class="eyebrow">DONE</div>
-            <h2>結合完了</h2>
-          </div>
+          <h2 id="resultTitle">結合完了</h2>
           <a id="downloadButton" class="download" download="merged.mp4">MP4を保存</a>
         </div>
-        <video id="resultPreview" controls playsinline></video>
+        <video id="resultPreview" controls playsinline aria-label="結合した動画のプレビュー"></video>
+        <audio id="resultAudio" controls hidden aria-label="切り出した音声のプレビュー"></audio>
+        <div id="cutActions" hidden>
+          <p id="cutResultNote" class="drop-hint"></p>
+          <label class="saved-confirm"><input id="savedConfirm" type="checkbox" />ダウンロードしたファイルを保存できました</label>
+          <div class="action-row">
+            <button id="nextRangeButton" class="secondary" disabled>保存したので次の範囲へ</button>
+            <button id="useMergeButton" class="secondary" disabled>保存したファイルを結合する</button>
+          </div>
+          <p class="drop-hint">次に進むと、この出力のプレビューとダウンロードリンクを解放します。元ファイルと保存済みファイルは削除しません。</p>
+        </div>
       </section>
-
-      <footer>
-        <span>ffmpeg.wasm</span>
-        <span>処理はローカル完結</span>
-      </footer>
+      <footer>動画と音声の結合は、お使いのブラウザ内で行われます。</footer>
     </main>
-
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
