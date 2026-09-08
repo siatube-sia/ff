@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="動画と音声をブラウザ内だけで結合してMP4にするツール" />
+    <title>Audio + Video Merger</title>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="eyebrow">LOCAL / PRIVATE / NO UPLOAD</div>
+        <h1>音声と映像を<br />ブラウザで結合</h1>
+        <p class="lead">ファイルはサーバーへ送信されません。端末上のFFmpeg WebAssemblyで処理します。</p>
+      </section>
+
+      <section class="panel">
+        <div class="drop-grid">
+          <label class="drop-zone" id="videoDrop">
+            <input id="videoInput" type="file" accept="video/*" hidden />
+            <span class="drop-icon">▶</span>
+            <span class="drop-title">映像を選択</span>
+            <span class="drop-sub">クリック または ドラッグ＆ドロップ</span>
+            <span class="file-name" id="videoName">未選択</span>
+          </label>
+
+          <label class="drop-zone" id="audioDrop">
+            <input id="audioInput" type="file" accept="audio/*" hidden />
+            <span class="drop-icon">♪</span>
+            <span class="drop-title">音声を選択</span>
+            <span class="drop-sub">クリック または ドラッグ＆ドロップ</span>
+            <span class="file-name" id="audioName">未選択</span>
+          </label>
+        </div>
+
+        <div class="preview-grid">
+          <div class="preview-card">
+            <div class="preview-label">VIDEO PREVIEW</div>
+            <video id="videoPreview" controls playsinline></video>
+          </div>
+          <div class="preview-card audio-card">
+            <div class="preview-label">AUDIO PREVIEW</div>
+            <div class="wave-placeholder" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <audio id="audioPreview" controls></audio>
+          </div>
+        </div>
+
+        <div class="settings">
+          <label class="setting-row">
+            <span>
+              <strong>音声を動画尺までループ</strong>
+              <small>音声が短い場合、繰り返して動画の最後まで再生します。</small>
+            </span>
+            <input id="loopAudio" type="checkbox" checked />
+          </label>
+
+          <label class="setting-row">
+            <span>
+              <strong>互換性優先（H.264へ変換）</strong>
+              <small>OFFは高速。元映像をそのまま使える場合は再エンコードしません。</small>
+            </span>
+            <input id="transcodeVideo" type="checkbox" />
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button id="mergeButton" class="primary" disabled>映像と音声を結合</button>
+          <button id="resetButton" class="secondary" type="button">リセット</button>
+        </div>
+
+        <div class="status" id="status" aria-live="polite">
+          <div class="status-line">
+            <span id="statusText">映像と音声を選択してください。</span>
+            <span id="progressText">0%</span>
+          </div>
+          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+      </section>
+
+      <section id="resultPanel" class="panel result-panel" hidden>
+        <div class="result-head">
+          <div>
+            <div class="eyebrow">DONE</div>
+            <h2>結合完了</h2>
+          </div>
+          <a id="downloadButton" class="download" download="merged.mp4">MP4を保存</a>
+        </div>
+        <video id="resultPreview" controls playsinline></video>
+      </section>
+
+      <footer>
+        <span>ffmpeg.wasm</span>
+        <span>処理はローカル完結</span>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
